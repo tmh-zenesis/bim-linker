@@ -1,6 +1,4 @@
-// src/components/BimLinker.js
 import React, { useEffect, useRef, useState } from 'react';
-// Correct import for pdfjs-dist components
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 
 // Set the worker path to the public folder where pdf.worker.min.js is located
@@ -9,12 +7,12 @@ GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 const BimLinker = () => {
   const [pdf, setPdf] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [dotPosition, setDotPosition] = useState(null);  // To store the current dot position
   const canvasRef = useRef(null);
 
   // Function to load the PDF file
   const loadPdf = async (pdfUrl) => {
     try {
-      // Load the PDF from the provided URL (path relative to the public folder)
       const loadedPdf = await getDocument(pdfUrl).promise;
       setPdf(loadedPdf);
     } catch (error) {
@@ -35,6 +33,9 @@ const BimLinker = () => {
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
+    // Clear the canvas before rendering the page
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
     // Render the page onto the canvas
     const renderContext = {
       canvasContext: context,
@@ -42,17 +43,12 @@ const BimLinker = () => {
     };
 
     await page.render(renderContext).promise;
+
+    // Draw the dot if there's a position
+    if (dotPosition) {
+      drawDot(dotPosition);
+    }
   };
-
-  useEffect(() => {
-    // Load the PDF file from the public folder when the component mounts
-    loadPdf('/Grundriss Kellergeschoss_3.pdf');  // Path relative to the public folder
-  }, []); // Only run once on component mount
-
-  useEffect(() => {
-    // Render the current page when the PDF is loaded or page changes
-    renderPage(currentPage);
-  }, [pdf, currentPage]);
 
   // Function to handle click on the canvas and log the position
   const handleCanvasClick = (event) => {
@@ -61,34 +57,54 @@ const BimLinker = () => {
     const x = event.clientX - rect.left;  // X coordinate relative to the canvas
     const y = event.clientY - rect.top;   // Y coordinate relative to the canvas
 
-    console.log(`Click position: X: ${x}, Y: ${y}`);
+    // Store the new position of the dot
+    setDotPosition({ x, y });
   };
 
-  // Add event listener for click on canvas element
-  useEffect(() => {
+  // Draw the red dot at the specified coordinates
+  const drawDot = (position) => {
     const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.addEventListener('click', handleCanvasClick);
+    const context = canvas.getContext('2d');
+    const { x, y } = position;
 
-      // Cleanup event listener when component unmounts
-      return () => {
-        canvas.removeEventListener('click', handleCanvasClick);
-      };
-    }
-  }, []);
+    context.beginPath();
+    context.arc(x, y, 5, 0, 2 * Math.PI); // Draw a circle with radius 5
+    context.fillStyle = 'red'; // Set the dot color to red
+    context.fill();
+  };
+
+  useEffect(() => {
+    loadPdf('/Grundriss Kellergeschoss_3.pdf');  // Path relative to the public folder
+  }, []); // Only run once on component mount
+
+  useEffect(() => {
+    renderPage(currentPage);
+  }, [pdf, currentPage, dotPosition]);  // Re-render when the page or dot position changes
 
   const nextPage = () => setCurrentPage(currentPage + 1);
   const prevPage = () => setCurrentPage(currentPage - 1);
 
   return (
-    <div>
-      <h1>BimLinker - PDF Viewer</h1>
-      <canvas ref={canvasRef}></canvas>
-      <div>
-        <button onClick={prevPage} disabled={currentPage <= 1}>Previous</button>
-        <button onClick={nextPage} disabled={currentPage >= pdf?.numPages}>Next</button>
+    <div style={{ display: 'flex', margin: '20px' }}>
+      {/* Left div for BimLinker */}
+      <div style={{ flex: 1, padding: '20px' }}>
+        <h1>BimLinker - PDF Viewer</h1>
+        <canvas 
+          ref={canvasRef} 
+          onClick={handleCanvasClick} // Attach the click event
+        ></canvas>
+        <div>
+          <button onClick={prevPage} disabled={currentPage <= 1}>Previous</button>
+          <button onClick={nextPage} disabled={currentPage >= pdf?.numPages}>Next</button>
+        </div>
+        <p>Page {currentPage} of {pdf?.numPages}</p>
       </div>
-      <p>Page {currentPage} of {pdf?.numPages}</p>
+
+      {/* Right div for future components */}
+      <div style={{ flex: 1, padding: '20px', borderLeft: '1px solid #ddd' }}>
+        <h2>Future Component</h2>
+        <p>This space is reserved for a future component.</p>
+      </div>
     </div>
   );
 };
