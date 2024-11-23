@@ -8,25 +8,30 @@ const BimLinker = () => {
   const [pdf, setPdf] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [dotPosition, setDotPosition] = useState(null);  // To store the current dot position
-  const canvasRef = useRef(null);
+  const [pdfName, setPdfName] = useState(""); // To store the name of the document
+  const canvasRef = useRef(null); // Ref for the canvas
+  const imageRef = useRef(null);  // Ref for the image element to display the final image
 
   // Function to load the PDF file
   const loadPdf = async (pdfUrl) => {
     try {
       const loadedPdf = await getDocument(pdfUrl).promise;
       setPdf(loadedPdf);
+
+      // Extract the document name from the URL and set it
+      const name = pdfUrl.split('/').pop(); // Get the last part of the URL
+      setPdfName(name); // Set the PDF file name
     } catch (error) {
       console.error('Error loading PDF:', error);
     }
   };
 
-  // Function to render the current page of the PDF
-  const renderPage = async (pageNum) => {
-    if (!pdf) return;
+  // Function to render the current page of the PDF with or without a dot
+  const renderPage = async (pageNum, canvas, dotPosition = null) => {
+    if (!pdf || !canvas) return;
 
     const page = await pdf.getPage(pageNum);
     const viewport = page.getViewport({ scale: 1 });
-    const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     
     // Set the canvas dimensions to match the PDF page
@@ -44,10 +49,13 @@ const BimLinker = () => {
 
     await page.render(renderContext).promise;
 
-    // Draw the dot if there's a position
+    // If a dot position is available, draw it
     if (dotPosition) {
-      drawDot(dotPosition);
+      drawDot(context, dotPosition);
     }
+
+    // Convert the canvas with the dot into an image and display it immediately
+    convertCanvasToImage(canvas);
   };
 
   // Function to handle click on the canvas and log the position
@@ -59,18 +67,28 @@ const BimLinker = () => {
 
     // Store the new position of the dot
     setDotPosition({ x, y });
+
+    // Render the page with the red dot immediately
+    renderPage(currentPage, canvasRef.current, { x, y });
   };
 
-  // Draw the red dot at the specified coordinates
-  const drawDot = (position) => {
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+ // Draw the blue dot at the specified coordinates
+    const drawDot = (context, position) => {
     const { x, y } = position;
-
     context.beginPath();
     context.arc(x, y, 5, 0, 2 * Math.PI); // Draw a circle with radius 5
-    context.fillStyle = 'red'; // Set the dot color to red
+    context.fillStyle = 'blue'; // Set the dot color to blue
     context.fill();
+  };
+  
+
+  // Function to convert the canvas to an image and display it
+  const convertCanvasToImage = (canvas) => {
+    if (canvas && imageRef.current) {
+      // Create an image from the canvas content
+      const dataUrl = canvas.toDataURL();
+      imageRef.current.src = dataUrl;  // Set the image source to the canvas data URL
+    }
   };
 
   useEffect(() => {
@@ -78,8 +96,10 @@ const BimLinker = () => {
   }, []); // Only run once on component mount
 
   useEffect(() => {
-    renderPage(currentPage);
-  }, [pdf, currentPage, dotPosition]);  // Re-render when the page or dot position changes
+    if (canvasRef.current) {
+      renderPage(currentPage, canvasRef.current); // Render the page initially without the dot
+    }
+  }, [pdf, currentPage]); // Re-render when the page changes
 
   const nextPage = () => setCurrentPage(currentPage + 1);
   const prevPage = () => setCurrentPage(currentPage - 1);
@@ -100,10 +120,10 @@ const BimLinker = () => {
         <p>Page {currentPage} of {pdf?.numPages}</p>
       </div>
 
-      {/* Right div for future components */}
+      {/* Right div for the image generated from the canvas */}
       <div style={{ flex: 1, padding: '20px', borderLeft: '1px solid #ddd' }}>
-        <h2>Future Component</h2>
-        <p>This space is reserved for a future component.</p>
+        <h2>{pdfName}</h2> {/* Display the PDF name above the image */}
+        <img ref={imageRef} alt="PDF with Blue Dot" style={{ width: '100%', height: 'auto' }} />
       </div>
     </div>
   );
