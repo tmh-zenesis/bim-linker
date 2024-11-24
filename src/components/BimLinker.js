@@ -70,12 +70,18 @@ const BimLinker = () => {
     const dot = { x, y };
     setDotPosition(dot);
 
+    // Log the 2D position of the dot on the PDF
+    console.log(`2D Dot Position on PDF: (x: ${x}, y: ${y})`);
+
     // Render the page with the blue dot immediately
     renderPage(currentPage, canvas, dot);
 
     // Map 2D dot position to 3D model coordinates
     const modelCoord = mapTo3D(x, y, canvas.width, canvas.height);
     setModelPosition(modelCoord);
+
+    // Log the 3D coordinates
+    console.log(`Mapped 3D Position on Model: (x: ${modelCoord.x}, y: ${modelCoord.y}, z: ${modelCoord.z})`);
 
     // Update the camera position dynamically
     const modelViewer = document.querySelector('model-viewer');
@@ -133,6 +139,16 @@ const BimLinker = () => {
   const nextPage = () => setCurrentPage(currentPage + 1);
   const prevPage = () => setCurrentPage(currentPage - 1);
 
+  // Function to log the position of the click on the model
+  const handleModelViewerClick = (event) => {
+    const modelViewer = event.target;
+    const rect = modelViewer.getBoundingClientRect();
+    const x = event.clientX - rect.left; // X position relative to the model viewer
+    const y = event.clientY - rect.top; // Y position relative to the model viewer
+
+    console.log(`Clicked on model at position (x: ${x}, y: ${y})`);
+  };
+
   return (
     <div style={{ display: 'flex', margin: '20px' }}>
       {/* Left div for BimLinker */}
@@ -167,6 +183,7 @@ const BimLinker = () => {
           style={{ width: '100%', height: '100%' }}
           camera-target={`${modelPosition.x} ${modelPosition.y} ${modelPosition.z}`} // Focus on the mapped position
           camera-orbit="0deg 0deg 2m" // Set camera orbit to top-down view (0 degrees azimuth, 90 degrees polar)
+          onClick={handleModelViewerClick} // Add click event to capture click on the model
         >
           <button
             slot="hotspot-1"
