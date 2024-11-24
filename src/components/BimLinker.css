@@ -1,0 +1,56 @@
+/* Hide the checkbox visually */
+.switch .hidden-checkbox {
+  display: none;
+}
+
+/* Style the slider and camera icon */
+.switch {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Style the icon */
+.switch .fas {
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+/* Active icon style */
+.switch .fas.active {
+  color: green;
+}
+
+/* Style the slider itself */
+.switch .slider {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  background-color: #ccc;
+  border-radius: 50px;
+  transition: 0.4s;
+  margin-left: 10px;
+}
+
+/* When the checkbox is checked, the slider background turns green */
+.switch input:checked + .slider {
+  background-color: #4caf50;
+}
+
+/* The circle inside the slider */
+.switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  left: 4px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.4s;
+}
+
+/* When the checkbox is checked, the circle moves to the right */
+.switch input:checked + .slider:before {
+  transform: translateX(14px);
+}
